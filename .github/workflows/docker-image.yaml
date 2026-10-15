@@ -32,5 +32,7 @@ jobs:
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           PUBLISH_MANUALLY: ${{ inputs.PUBLISH_MANUALLY }}
           IMAGE_NAMESPACE: ${{ vars.IMAGE_NAMESPACE || 'pfeiffermax' }}
+          # this branch's image carries BepInEx and CrossplayJoinCodeFix, so keep it apart from the plain tags
+          IMAGE_TAG_SUFFIX: "-joincodefix"
         run: |          
           uv run --no-dev python -m build.publish

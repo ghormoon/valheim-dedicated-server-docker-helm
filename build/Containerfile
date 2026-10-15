@@ -30,6 +30,41 @@ RUN steamcmd +quit \
     done \
     && test -x /srv/valheim/valheim_server.x86_64
 
+# BepInEx mod loader and the CrossplayJoinCodeFix server plugin (https://github.com/Shuiei/CrossplayJoinCodeFix).
+# Without the plugin, a crossplay server whose PlayFab join-code check gets an incomplete answer throws a
+# NullReferenceException in ZPlayFabMatchmaking.OnCheckJoinCodeSuccess and never activates its lobby, so
+# nobody can join. The plugin is built from a pinned, reviewed commit against this image's game DLLs.
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS plugin-build-stage
+
+ARG BEPINEXPACK_VERSION=5.4.2351
+ARG BEPINEXPACK_SHA256=bce631497976a93977ceb08e166712e6c31d15244956f89f17df092a9b62e29f
+ARG JOINCODEFIX_COMMIT=5a2a9692c0882e13a7579cda5301de8d9e3c80dd
+ARG JOINCODEFIX_SHA256=5bcc7062b676a9884063d300144ceda8213c746717e23f3d16c7ec0e6fa50c77
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y ca-certificates curl unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY --from=install-stage /srv/valheim/valheim_server_Data/Managed /build/ref/valheim_server_Data/Managed
+
+RUN curl -fsSL -o bepinexpack.zip \
+        "https://thunderstore.io/package/download/denikson/BepInExPack_Valheim/${BEPINEXPACK_VERSION}/" \
+    && echo "${BEPINEXPACK_SHA256}  bepinexpack.zip" | sha256sum -c - \
+    && unzip -q bepinexpack.zip -d bepinexpack \
+    && mkdir -p ref/BepInEx/core \
+    && cp bepinexpack/BepInExPack_Valheim/BepInEx/core/*.dll ref/BepInEx/core/
+
+# The .csproj references the game and BepInEx DLLs by its author's local paths.
+RUN curl -fsSL -o joincodefix.tar.gz \
+        "https://github.com/Shuiei/CrossplayJoinCodeFix/archive/${JOINCODEFIX_COMMIT}.tar.gz" \
+    && echo "${JOINCODEFIX_SHA256}  joincodefix.tar.gz" | sha256sum -c - \
+    && mkdir joincodefix \
+    && tar -xzf joincodefix.tar.gz -C joincodefix --strip-components=1 \
+    && sed -i "s|/home/thibs/Desktop/Valheim_BepInEx|/build/ref|g" joincodefix/CrossplayJoinCodeFix.csproj \
+    && dotnet build joincodefix/CrossplayJoinCodeFix.csproj -c Release -p:DebugType=none -o /build/out
+
 FROM --platform=linux/amd64 docker.io/library/debian:trixie-slim AS production-image
 
 # Principle of least privilege: create a new user for running the application
@@ -52,6 +87,13 @@ WORKDIR /srv/valheim
 RUN chown -R valheim:valheim /srv/valheim
 
 COPY --from=install-stage --chown=valheim:valheim /srv/valheim /srv/valheim
+
+COPY --from=plugin-build-stage --chown=valheim:valheim \
+    /build/bepinexpack/BepInExPack_Valheim/BepInEx /srv/valheim/BepInEx
+COPY --from=plugin-build-stage --chown=valheim:valheim \
+    /build/bepinexpack/BepInExPack_Valheim/doorstop_libs /srv/valheim/doorstop_libs
+COPY --from=plugin-build-stage --chown=valheim:valheim \
+    /build/out/CrossplayJoinCodeFix.dll /srv/valheim/BepInEx/plugins/CrossplayJoinCodeFix.dll
 
 COPY --chown=valheim:valheim start.sh /srv/valheim/start.sh
 

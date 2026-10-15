@@ -3,6 +3,12 @@
 export LD_LIBRARY_PATH=./linux64:$LD_LIBRARY_PATH
 export SteamAppId=892970
 
+# Load BepInEx through Unity Doorstop, as BepInExPack_Valheim's start_server_bepinex.sh does. LD_PRELOAD is
+# only set for the server process below, so the helper commands in this script run without it.
+export DOORSTOP_ENABLED=1
+export DOORSTOP_TARGET_ASSEMBLY=./BepInEx/core/BepInEx.Preloader.dll
+export LD_LIBRARY_PATH=./doorstop_libs:$LD_LIBRARY_PATH
+
 # When this image is run using the Helm chart, the Helm chart creates files containing environment variables
 # with server configuration and the rcon password. These environment variables are exported to the current shell
 # if those files exist.
@@ -45,7 +51,7 @@ trap terminate INT TERM
 # server would inherit an ignored SIGINT and our shutdown signal below would have no effect.
 set -m
 
-./valheim_server.x86_64 "$@" &
+LD_PRELOAD="libdoorstop_x64.so${LD_PRELOAD:+:$LD_PRELOAD}" ./valheim_server.x86_64 "$@" &
 SERVER_PID=$!
 
 set +m

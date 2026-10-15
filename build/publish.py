@@ -36,6 +36,12 @@ from build.utils import (
     help="Registry namespace the image is published to",
 )
 @click.option(
+    "--tag-suffix",
+    envvar="IMAGE_TAG_SUFFIX",
+    default="",
+    help="Suffix appended to the published tags, e.g. -joincodefix",
+)
+@click.option(
     "--publish-manually",
     envvar="PUBLISH_MANUALLY",
     is_flag=True,
@@ -47,6 +53,7 @@ def main(
     docker_hub_token: str,
     registry: str,
     namespace: str,
+    tag_suffix: str,
     publish_manually: bool,
 ) -> None:
     """Build image with Podman and publish it to Docker Hub.
@@ -55,6 +62,7 @@ def main(
     :param docker_hub_token:
     :param registry:
     :param namespace:
+    :param tag_suffix:
     :param publish_manually:
     :return:
     """
@@ -71,9 +79,11 @@ def main(
     else:
         click.echo("Building Valheim server container image...")
 
-        tag = create_tag(current_valheim_server_build_id)
+        tag = create_tag(current_valheim_server_build_id) + tag_suffix
         image_reference_version: str = get_image_reference(registry, namespace, tag)
-        image_reference_latest: str = get_image_reference(registry, namespace, "latest")
+        image_reference_latest: str = get_image_reference(
+            registry, namespace, "latest" + tag_suffix
+        )
 
         podman_client: DockerClient = get_podman_client()
 
