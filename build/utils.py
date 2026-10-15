@@ -34,15 +34,17 @@ def get_context() -> Path:
 
 def get_image_reference(
     registry: str,
+    namespace: str,
     tag: str,
 ) -> str:
     """Return image reference.
 
     :param registry:
+    :param namespace:
     :param image_version:
     :return:
     """
-    reference: str = f"{registry}/pfeiffermax/valheim-dedicated-server:{tag}"
+    reference: str = f"{registry}/{namespace}/valheim-dedicated-server:{tag}"
     return reference
 
 
@@ -59,14 +61,15 @@ def get_valheim_build_id() -> str:
     return build_id
 
 
-def tag_exists(build_id: str) -> bool:
+def tag_exists(namespace: str, build_id: str) -> bool:
     """Pull tag data from Docker Hub and check if tag with this build_id already exists.
 
+    :param namespace:
     :param build_id:
     :return:
     """
     response = requests.get(
-        "https://hub.docker.com/v2/namespaces/pfeiffermax/repositories/valheim-dedicated-server/tags"
+        f"https://hub.docker.com/v2/namespaces/{namespace}/repositories/valheim-dedicated-server/tags"
     )
     response.raise_for_status()
     tags: dict = response.json()["results"]

@@ -31,5 +31,6 @@ jobs:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           PUBLISH_MANUALLY: ${{ inputs.PUBLISH_MANUALLY }}
+          IMAGE_NAMESPACE: ${{ vars.IMAGE_NAMESPACE || 'pfeiffermax' }}
         run: |          
           uv run --no-dev python -m build.publish

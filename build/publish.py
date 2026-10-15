@@ -30,6 +30,12 @@ from build.utils import (
     "--registry", envvar="REGISTRY", default="docker.io", help="Container registry"
 )
 @click.option(
+    "--namespace",
+    envvar="IMAGE_NAMESPACE",
+    default="pfeiffermax",
+    help="Registry namespace the image is published to",
+)
+@click.option(
     "--publish-manually",
     envvar="PUBLISH_MANUALLY",
     is_flag=True,
@@ -40,6 +46,7 @@ def main(
     docker_hub_username: str,
     docker_hub_token: str,
     registry: str,
+    namespace: str,
     publish_manually: bool,
 ) -> None:
     """Build image with Podman and publish it to Docker Hub.
@@ -47,6 +54,7 @@ def main(
     :param docker_hub_username:
     :param docker_hub_token:
     :param registry:
+    :param namespace:
     :param publish_manually:
     :return:
     """
@@ -56,7 +64,7 @@ def main(
     current_valheim_server_build_id = get_valheim_build_id()
     click.echo(f"Current Valheim server build ID: {current_valheim_server_build_id}")
 
-    if not publish_manually and tag_exists(current_valheim_server_build_id):
+    if not publish_manually and tag_exists(namespace, current_valheim_server_build_id):
         click.echo(
             "Image for this build ID already exists. Skipping container image build..."
         )
@@ -64,8 +72,8 @@ def main(
         click.echo("Building Valheim server container image...")
 
         tag = create_tag(current_valheim_server_build_id)
-        image_reference_version: str = get_image_reference(registry, tag)
-        image_reference_latest: str = get_image_reference(registry, "latest")
+        image_reference_version: str = get_image_reference(registry, namespace, tag)
+        image_reference_latest: str = get_image_reference(registry, namespace, "latest")
 
         podman_client: DockerClient = get_podman_client()
 

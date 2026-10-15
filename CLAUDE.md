@@ -80,6 +80,8 @@ branch build ID of app `896660`, and tags the image `build-<build_id>` plus `lat
 building, `tag_exists()` queries the Docker Hub tags API and the nightly workflow
 (`publish.yaml`, cron 01:15) skips the build when a tag for the current build ID already exists.
 `PUBLISH_MANUALLY=1` (also `publish-manual.yaml`, `workflow_dispatch`) overrides that check.
+The Docker Hub namespace defaults to `pfeiffermax`; `IMAGE_NAMESPACE` (the `IMAGE_NAMESPACE` repository
+variable in CI) changes it, so a fork can publish to its own Docker Hub account.
 
 Note `tag_exists()` only inspects the first page of Docker Hub tags.
 
